@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { loginSchema } from "@/lib/validations";
-import { filterVenues, countActiveFilters } from "@/lib/venues";
+import { filterVenues, countActiveFilters, parseAmenities, formatPrice } from "@/lib/venues";
 import { venues } from "@/data/venues";
-import { safeReturnPath } from "@/lib/auth-redirect";
+import { isProtectedPath, safeReturnPath } from "@/lib/auth-redirect";
 import { ROUTES } from "@/lib/constants";
 
 describe("loginSchema", () => {
@@ -61,6 +61,19 @@ describe("countActiveFilters", () => {
   });
 });
 
+describe("parseAmenities", () => {
+  it("keeps known amenity ids and drops junk", () => {
+    expect(parseAmenities("wifi,parking,laser-tag")).toEqual(["wifi", "parking"]);
+    expect(parseAmenities(undefined)).toEqual([]);
+  });
+});
+
+describe("formatPrice", () => {
+  it("formats a whole-dollar price", () => {
+    expect(formatPrice(2400)).toMatch(/2,400/);
+  });
+});
+
 describe("safeReturnPath", () => {
   it("defaults to home when from is missing", () => {
     expect(safeReturnPath(null)).toBe(ROUTES.home);
@@ -76,5 +89,17 @@ describe("safeReturnPath", () => {
   it("keeps in-app return paths", () => {
     expect(safeReturnPath("/venues/vx-311")).toBe("/venues/vx-311");
     expect(safeReturnPath("/venues")).toBe("/venues");
+  });
+});
+
+describe("isProtectedPath", () => {
+  it("locks home and the venues tree", () => {
+    expect(isProtectedPath("/")).toBe(true);
+    expect(isProtectedPath("/venues")).toBe(true);
+    expect(isProtectedPath("/venues/vx-311")).toBe(true);
+  });
+
+  it("leaves login public", () => {
+    expect(isProtectedPath("/login")).toBe(false);
   });
 });

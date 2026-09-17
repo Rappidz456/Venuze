@@ -23,7 +23,7 @@ export default async function VenueDetailPage({ params }: Props) {
   if (!venue) notFound();
 
   return (
-    <div className="bg-neutral-off pt-28 pb-20">
+    <div className="bg-neutral-off pt-header-stacked pb-20 md:pt-28">
       <Container>
         <div className="grid gap-4 lg:grid-cols-gallery">
           <div className="relative h-gallery-sm overflow-hidden rounded-xl md:h-gallery">

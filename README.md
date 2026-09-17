@@ -28,6 +28,8 @@ Open [http://localhost:3000](http://localhost:3000).
 | `npm run start` | Serve the production build |
 | `npm run lint` | ESLint |
 | `npm run test` | Vitest unit tests |
+| `npm run test:e2e` | Playwright end-to-end tests (auth gates, login, search) |
+| `npm run test:all` | Unit tests, then Playwright |
 
 ## What’s in the app
 

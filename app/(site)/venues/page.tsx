@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function VenuesPage() {
   return (
-    <div className="min-h-screen bg-surface pt-14 sm:pt-16 md:pt-header">
+    <div className="min-h-screen bg-surface pt-header-stacked md:pt-header">
       <Suspense
         fallback={
           <Container className="py-10">

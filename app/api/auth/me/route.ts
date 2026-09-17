@@ -1,40 +1,29 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { AUTH_COOKIE } from "@/lib/constants";
-
-function displayName(email: string) {
-  const local = email.split("@")[0] ?? "Guest";
-  return local
-    .split(/[._-]/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
+import {
+  displayNameFromEmail,
+  fetchReqResProfile,
+  parseSession,
+  toAuthUser,
+  writeSessionCookie,
+} from "@/lib/auth-session";
 
 export async function GET() {
   const jar = await cookies();
-  const raw = jar.get(AUTH_COOKIE)?.value;
+  const session = parseSession(jar.get(AUTH_COOKIE)?.value);
 
-  if (!raw) {
+  if (!session) {
     return NextResponse.json({ user: null });
   }
 
-  try {
-    const decoded = JSON.parse(
-      Buffer.from(raw, "base64").toString("utf8"),
-    ) as { email?: string };
-
-    if (!decoded.email) {
-      return NextResponse.json({ user: null });
-    }
-
-    return NextResponse.json({
-      user: {
-        email: decoded.email,
-        name: displayName(decoded.email),
-      },
-    });
-  } catch {
-    return NextResponse.json({ user: null });
+  const expectedName = displayNameFromEmail(session.email);
+  if (session.name !== expectedName || !session.avatar) {
+    const profile = await fetchReqResProfile(session.email);
+    session.name = profile.name;
+    session.avatar = session.avatar ?? profile.avatar;
+    await writeSessionCookie(session);
   }
+
+  return NextResponse.json({ user: toAuthUser(session) });
 }

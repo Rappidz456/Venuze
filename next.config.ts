@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
         hostname: "reqres.in",
       },
     ],
+    minimumCacheTTL: 60 * 60 * 24,
+  },
+  experimental: {
+    optimizePackageImports: ["lucide-react"],
   },
 };
 

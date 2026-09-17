@@ -47,7 +47,7 @@ export function VenuesExplorer() {
 
   return (
     <>
-      <div className="sticky top-14 z-30 bg-surface sm:top-16 md:top-header">
+      <div className="sticky top-header-stacked z-30 bg-surface md:top-header">
         <SearchToolbar />
       </div>
 

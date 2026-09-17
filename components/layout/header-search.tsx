@@ -7,6 +7,10 @@ import { Dropdown } from "@/components/ui/dropdown";
 import { SEARCH_CITIES, SEARCH_GUESTS, SEARCH_WHEN } from "@/data/content";
 import { cn } from "@/lib/cn";
 
+const CITY_PLACEHOLDER = "Where";
+const WHEN_PLACEHOLDER = "When";
+const GUESTS_PLACEHOLDER = "Guests";
+
 export function HeaderSearch() {
   const params = useSearchParams();
   const router = useRouter();
@@ -21,15 +25,17 @@ export function HeaderSearch() {
     setGuests(guestsFromParams(params.get("guests")));
   }, [params]);
 
-  const guestLabel = SEARCH_GUESTS.find((item) => item.value === guests)?.label ?? guests;
+  const guestLabel = guests
+    ? `${SEARCH_GUESTS.find((item) => item.value === guests)?.label ?? guests} Guests`
+    : GUESTS_PLACEHOLDER;
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const next = new URLSearchParams(params.toString());
-    const cityName = city.split(",")[0];
+    const cityName = city === CITY_PLACEHOLDER ? "" : city.split(",")[0];
     if (cityName) next.set("city", cityName);
     else next.delete("city");
-    if (when !== "Anytime") next.set("date", when);
+    if (when && when !== WHEN_PLACEHOLDER && when !== "Anytime") next.set("date", when);
     else next.delete("date");
     if (guests) next.set("guests", guests);
     else next.delete("guests");
@@ -39,26 +45,37 @@ export function HeaderSearch() {
   return (
     <form
       onSubmit={onSubmit}
-      className="mx-auto flex h-header-search w-full max-w-header-search items-center rounded-pill border border-neutral-200 bg-white py-1 pl-4 pr-1"
+      className="flex h-12.5 w-full min-w-0 items-center rounded-pill border border-neutral-200 bg-white py-1 pl-4 pr-1 shadow-subtle md:mx-auto md:h-header-search md:max-w-header-search md:pl-4 md:pr-1 md:shadow-none"
     >
       <div className="flex min-w-0 flex-1 items-center">
-        <CompactSelect value={city} options={[...SEARCH_CITIES]} onChange={setCity} />
-        <span className="h-4 w-px shrink-0 bg-neutral-200" aria-hidden />
-        <CompactSelect value={when} options={[...SEARCH_WHEN]} onChange={setWhen} />
-        <span className="h-4 w-px shrink-0 bg-neutral-200" aria-hidden />
         <CompactSelect
-          value={`${guestLabel} Guests`}
+          value={city}
+          options={[...SEARCH_CITIES]}
+          onChange={setCity}
+          placeholder={CITY_PLACEHOLDER}
+        />
+        <span className="h-5 w-px shrink-0 bg-neutral-200 md:h-4" aria-hidden />
+        <CompactSelect
+          value={when}
+          options={[...SEARCH_WHEN]}
+          onChange={setWhen}
+          placeholder={WHEN_PLACEHOLDER}
+        />
+        <span className="h-5 w-px shrink-0 bg-neutral-200 md:h-4" aria-hidden />
+        <CompactSelect
+          value={guestLabel}
           options={SEARCH_GUESTS.map((item) => `${item.label} Guests`)}
           onChange={(label) => {
             const match = SEARCH_GUESTS.find((item) => `${item.label} Guests` === label);
             if (match) setGuests(match.value);
           }}
+          placeholder={GUESTS_PLACEHOLDER}
         />
       </div>
       <button
         type="submit"
         aria-label="Search venues"
-        className="ml-1 flex size-header-search shrink-0 items-center justify-center rounded-full bg-brand text-white transition-colors hover:bg-brand-orange-mid"
+        className="ml-1 flex size-10 shrink-0 items-center justify-center rounded-full bg-brand text-white transition-colors hover:bg-brand-orange-mid md:size-header-search"
       >
         <AppIcon name="search" className="size-4" />
       </button>
@@ -67,17 +84,17 @@ export function HeaderSearch() {
 }
 
 function cityFromParams(city: string | null) {
-  if (!city) return SEARCH_CITIES[0];
+  if (!city) return CITY_PLACEHOLDER;
   return SEARCH_CITIES.find((item) => item.startsWith(city)) ?? `${city}`;
 }
 
 function whenFromParams(date: string | null) {
-  if (!date) return SEARCH_WHEN[0];
+  if (!date) return WHEN_PLACEHOLDER;
   return SEARCH_WHEN.find((item) => item === date) ?? date;
 }
 
 function guestsFromParams(guests: string | null) {
-  if (!guests) return SEARCH_GUESTS[0].value;
+  if (!guests) return "";
   return SEARCH_GUESTS.find((item) => item.value === guests)?.value ?? guests;
 }
 
@@ -85,17 +102,24 @@ function CompactSelect({
   value,
   options,
   onChange,
+  placeholder,
 }: {
   value: string;
   options: string[];
   onChange: (value: string) => void;
+  placeholder?: string;
 }) {
+  const isPlaceholder = Boolean(placeholder && value === placeholder);
+
   return (
     <Dropdown
       align="center"
       menuRole="listbox"
       className="min-w-0 flex-1"
-      triggerClassName="w-full truncate px-2 text-center text-sm font-medium tracking-wide text-foreground lg:text-base"
+      triggerClassName={cn(
+        "w-full truncate px-2 text-center text-md font-medium tracking-wide md:px-2 md:text-sm lg:text-base",
+        isPlaceholder ? "text-neutral-600 md:text-neutral-500" : "text-foreground",
+      )}
       menuClassName="top-full z-30 mt-2 w-40 rounded-sm"
       trigger={value}
     >

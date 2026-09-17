@@ -154,6 +154,7 @@ const config: Config = {
         "160": "640px",
         "186": "744px",
         header: "72px",
+        "header-stacked": "124px",
         // Header (72) + keyword bar (51) + category rail (70): where the
         // results area starts, and what the map is pinned to. Keep in sync
         // with height.map below.
@@ -188,6 +189,7 @@ const config: Config = {
       },
       height: {
         header: "72px",
+        "header-stacked": "124px",
         "header-search": "42px",
         hero: "744px",
         search: "100px",
@@ -205,7 +207,7 @@ const config: Config = {
         // The map fills the window from under the search toolbar to the
         // bottom edge, so it is attached on three sides.
         map: "calc(100vh - 192px)",
-        "map-toggle": "calc(100svh - 220px)",
+        "map-toggle": "calc(100svh - 288px)",
         "map-toggle-md": "calc(100svh - 244px)",
         "step-line": "calc(100% + 2rem)",
         "step-line-lg": "calc(100% + 2.5rem)",

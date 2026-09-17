@@ -8,10 +8,12 @@ import { HeaderSearch } from "@/components/layout/header-search";
 import { Navbar } from "@/components/layout/navbar";
 import { Dropdown, DropdownItem } from "@/components/ui/dropdown";
 import { IconButton } from "@/components/ui/icon-button";
+import { Image } from "@/components/ui/image";
 import { useDismiss } from "@/hooks/use-dismiss";
 import { useLogoutMutation } from "@/hooks/use-auth";
 import { cn } from "@/lib/cn";
 import { ROUTES } from "@/lib/constants";
+import { HEADER_SCROLL_THRESHOLD, isHeaderCompact } from "@/lib/header-state";
 import { useAuthStore } from "@/stores/auth-store";
 import { useUiStore } from "@/stores/ui-store";
 
@@ -23,14 +25,25 @@ const LANGUAGES = [
 export function Header() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
-  const isHome = pathname === "/";
+  const isHome = pathname === ROUTES.home;
   const closeMobileNav = useUiStore((state) => state.closeMobileNav);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
-    onScroll();
+    let frame = 0;
+    const apply = () => {
+      frame = 0;
+      setScrolled(window.scrollY > HEADER_SCROLL_THRESHOLD);
+    };
+    const onScroll = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(apply);
+    };
+    apply();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
   }, []);
 
   useEffect(() => {
@@ -38,21 +51,23 @@ export function Header() {
   }, [pathname, closeMobileNav]);
 
   const inverted = isHome && !scrolled;
-  const isVenues = pathname === ROUTES.venues;
+  const compact = isHeaderCompact(pathname, scrolled);
 
   return (
     <Navbar
       inverted={inverted}
-      bordered={isVenues}
-      logo={<Logo inverted={inverted} className="shrink-0" />}
+      bordered={compact}
+      stacked={compact}
+      logo={
+        <div className="relative z-10 col-start-1 row-start-1 shrink-0">
+          <Logo inverted={inverted} wordmark={compact ? "from-md" : "auto"} />
+        </div>
+      }
       center={
-        isVenues ? (
-          // Tablet: the pill sits in the flow between the logo and the
-          // actions so it can shrink instead of overlapping them. Desktop:
-          // it is centred on the frame, as drawn in the file.
-          <div className="hidden min-w-0 flex-1 items-center justify-center px-2 md:flex xl:pointer-events-none xl:absolute xl:inset-0 xl:flex-none xl:px-0">
-            <div className="w-full max-w-header-search xl:pointer-events-auto">
-              <Suspense fallback={<div className="h-header-search w-full max-w-header-search" />}>
+        compact ? (
+          <div className="col-span-2 row-start-2 mt-2.5 min-w-0 w-full md:pointer-events-none md:absolute md:inset-0 md:col-auto md:row-auto md:mt-0 md:flex md:items-center md:justify-center">
+            <div className="w-full md:max-w-header-search md:pointer-events-auto">
+              <Suspense fallback={<div className="h-12.5 w-full md:h-header-search" />}>
                 <HeaderSearch />
               </Suspense>
             </div>
@@ -60,16 +75,20 @@ export function Header() {
         ) : null
       }
       actions={
-        <div className="flex min-w-0 items-center justify-end gap-1.5 sm:gap-2">
-          <div className={cn(isVenues && "md:hidden")}>
-            <ListingMenu inverted={inverted} accent={isVenues} />
+        compact ? (
+          <div className="relative z-10 col-start-2 row-start-1 shrink-0 justify-self-end">
+            <ProfileMenu inverted={false} showIdentity />
           </div>
-          <div className="hidden items-center gap-2 md:flex">
-            {isVenues ? null : <LanguageMenu inverted={inverted} />}
-            <ProfileMenu inverted={inverted} />
+        ) : (
+          <div className="flex min-w-0 items-center justify-end gap-1.5 sm:gap-2">
+            <ListingMenu inverted={inverted} />
+            <div className="hidden items-center gap-2 md:flex">
+              <LanguageMenu inverted={inverted} />
+              <ProfileMenu inverted={inverted} />
+            </div>
+            <MobileMenu inverted={inverted} />
           </div>
-          <MobileMenu inverted={inverted} />
-        </div>
+        )
       }
     />
   );
@@ -115,25 +134,43 @@ function LanguageMenu({ inverted }: { inverted: boolean }) {
   );
 }
 
-function ProfileMenu({ inverted }: { inverted: boolean }) {
+function ProfileMenu({
+  inverted,
+  showIdentity = false,
+}: {
+  inverted: boolean;
+  showIdentity?: boolean;
+}) {
   const router = useRouter();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const user = useAuthStore((state) => state.user);
   const logout = useLogoutMutation();
 
   return (
     <Dropdown
-      triggerClassName="rounded-full"
+      className="shrink-0"
+      triggerClassName="rounded-pill"
       menuClassName="w-48"
       trigger={
-        <span
-          className={cn(
-            "flex size-9 items-center justify-center rounded-full shadow-subtle md:size-10",
-            inverted ? "bg-white text-brand" : "bg-white text-neutral-800 ring-1 ring-neutral-200",
-          )}
-          aria-label="Account"
-        >
-          <UserGlyph />
-        </span>
+        showIdentity ? (
+          <span className="flex max-w-full items-center gap-2">
+            <UserAvatar name={user?.name} src={user?.avatar} className="order-2 md:order-1" />
+            <span className="order-1 max-w-32 truncate text-md font-medium tracking-wide text-foreground md:order-2 md:max-w-40 md:text-base">
+              {user?.name ?? "Account"}
+            </span>
+            <ChevronDown className="order-3 hidden size-3.5 shrink-0 text-neutral-500 md:block" />
+          </span>
+        ) : (
+          <span
+            className={cn(
+              "flex size-9 items-center justify-center rounded-full shadow-subtle md:size-10",
+              inverted ? "bg-white text-brand" : "bg-white text-neutral-800 ring-1 ring-neutral-200",
+            )}
+            aria-label="Account"
+          >
+            <UserGlyph />
+          </span>
+        )
       }
     >
       {isAuthenticated ? (
@@ -153,6 +190,48 @@ function ProfileMenu({ inverted }: { inverted: boolean }) {
         <DropdownItem href={ROUTES.login}>Sign in</DropdownItem>
       )}
     </Dropdown>
+  );
+}
+
+function UserAvatar({
+  name,
+  src,
+  className,
+}: {
+  name?: string;
+  src?: string;
+  className?: string;
+}) {
+  if (src) {
+    return (
+      <Image
+        src={src}
+        alt=""
+        width={40}
+        height={40}
+        unoptimized
+        className={cn("size-9 shrink-0 rounded-full object-cover md:size-10", className)}
+      />
+    );
+  }
+
+  const initials = name
+    ?.split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+
+  return (
+    <span
+      className={cn(
+        "flex size-9 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-xs font-semibold text-foreground ring-1 ring-neutral-200 md:size-10 md:text-sm",
+        className,
+      )}
+      aria-hidden
+    >
+      {initials || <UserGlyph />}
+    </span>
   );
 }
 

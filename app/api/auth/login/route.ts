@@ -1,19 +1,10 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { AUTH_COOKIE } from "@/lib/constants";
+import { fetchReqResProfile, writeSessionCookie } from "@/lib/auth-session";
 import { loginSchema } from "@/lib/validations";
+import type { AuthUser } from "@/types";
 
 const REQRES_URL = process.env.REQRES_API_URL ?? "https://reqres.in/api";
 const REQRES_KEY = process.env.REQRES_API_KEY ?? "reqres-free-v1";
-
-function displayName(email: string) {
-  const local = email.split("@")[0] ?? "Guest";
-  return local
-    .split(/[._-]/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
 
 export async function POST(request: Request) {
   const body: unknown = await request.json();
@@ -44,26 +35,19 @@ export async function POST(request: Request) {
     );
   }
 
-  const session = Buffer.from(
-    JSON.stringify({
-      token: payload.token,
-      email: parsed.data.email,
-    }),
-  ).toString("base64");
+  const profile = await fetchReqResProfile(parsed.data.email);
+  const user: AuthUser = {
+    email: parsed.data.email,
+    name: profile.name,
+    avatar: profile.avatar,
+  };
 
-  const jar = await cookies();
-  jar.set(AUTH_COOKIE, session, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7,
+  await writeSessionCookie({
+    token: payload.token,
+    email: user.email,
+    name: user.name,
+    avatar: user.avatar,
   });
 
-  return NextResponse.json({
-    user: {
-      email: parsed.data.email,
-      name: displayName(parsed.data.email),
-    },
-  });
+  return NextResponse.json({ user });
 }

@@ -17,6 +17,8 @@ export function useSessionQuery() {
       return user;
     },
     staleTime: 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnMount: false,
   });
 }
 
@@ -28,7 +30,7 @@ export function useLoginMutation() {
     mutationFn: (payload: LoginPayload) => loginRequest(payload),
     onSuccess: (user) => {
       setUser(user);
-      void queryClient.invalidateQueries({ queryKey: ["session"] });
+      queryClient.setQueryData(["session"], user);
       toast.success("Welcome back", {
         description: "You’re signed in.",
       });
